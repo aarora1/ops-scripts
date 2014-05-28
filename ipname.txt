@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Sys::Hostname;
+use Socket;
+use File::Copy qw(copy);
+
+
+#function to update ifcfg-eth0 in /etc/sysconfig/network-scripts/ifcfg-eth0
+sub ipupdate{
+my $ipfilepath = '/etc/sysconfig/network-scripts/ifcfg-eth0';
+#copy/rename existing ifcfg-eth0 to ifcfg-eth0.bak
+#copy $ipfilepath, $ipfilepath.bak;
+unless(-e $ipfilepath. ".bak")
+{
+copy("$ipfilepath", $ipfilepath. ".bak") or die "Error in copying ifcfg $!";
+}
+open(FH1,  ">$ipfilepath") or die "cannot open the '$ipfilepath' $!";
+#get IP address of running machine
+my $ipaddr = `ifconfig eth0|grep "inet addr"|cut -d: -f2|cut -d " " -f1`;
+#get MAC address
+my $hwaddr = `cat /sys/class/net/eth0/address`;
+print FH1 "DEVICE=eth0\n";
+print FH1 "BOOTPROTO=static\n";
+print FH1 "IPADDR=$ipaddr";
+print FH1 "NETMASK=255.255.240.0\n";
+print FH1 "BROADCAST=10.0.15.255\n";
+print FH1 "HWADDR=$hwaddr";
+print FH1 "ONBOOT=yes\n";
+print FH1 "TYPE=Ethernet\n";
+close (FH1);
+}
+
+#funtion to update hostname in /etc/sysconfig/network
+#=begin block
+sub hostupdate{
+my $hostfilepath = '/etc/sysconfig/network';
+#copy/rename existing /etc/sysconfig/network to /etc/sysconfig/network.bak
+unless(-e $hostfilepath. ".bak")
+{
+copy("$hostfilepath", $hostfilepath. ".bak") or die "Error in renaming hostname $!";
+}
+open(FH2,  ">$hostfilepath") or die "cannot open the '$hostfilepath' $!";
+#get hostname of running machine
+my $host = `hostname`;
+print FH2 "NETWORKING=yes\n";
+print FH2 "NETWORKING_IPV6=no\n";
+print FH2 "HOSTNAME=$host";
+print FH2 "GATEWAY=10.0.0.1\n";
+close(FH2);
+}
+#=end block
+
+#main
+ipupdate();
+hostupdate();
